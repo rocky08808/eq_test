@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --shadow-card: 0 12px 40px rgba(24, 52, 68, 0.06), 0 1px 2px rgba(24, 52, 68, 0.04);
+  --shadow-pill: 0 8px 24px rgba(24, 52, 68, 0.06);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  color: #1c2434;
+  font-family: var(--font-noto), var(--font-outfit), "PingFang SC", "Microsoft YaHei",
+    sans-serif;
+  background-color: #f6f7f4;
+  background-image:
+    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(176, 224, 214, 0.55), transparent 58%),
+    radial-gradient(ellipse 62% 70% at 100% 0%, rgba(244, 226, 204, 0.72), transparent 52%),
+    radial-gradient(ellipse 40% 35% at 78% 100%, rgba(214, 230, 240, 0.45), transparent 60%),
+    linear-gradient(rgba(130, 148, 158, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(130, 148, 158, 0.07) 1px, transparent 1px);
+  background-size: auto, auto, auto, 56px 56px, 56px 56px;
+  background-attachment: fixed;
+}
+
+.font-en {
+  font-family: var(--font-outfit), var(--font-noto), sans-serif;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+}
