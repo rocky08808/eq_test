@@ -124,10 +124,10 @@ export default function AdminPage() {
           </div>
 
           <div className="overflow-x-auto rounded-[18px] border border-[rgba(32,73,82,0.16)] bg-white/75">
-            <table className="w-full min-w-[860px] border-collapse text-left">
+            <table className="w-full min-w-[980px] border-collapse text-left">
               <thead>
                 <tr className="text-[14px] font-extrabold text-[#62717a]">
-                  {["提交时间", "昵称", "岗位", "类型", "分数", "等级", "完成度", "提交方式"].map((label) => (
+                  {["提交时间", "昵称", "岗位", "备注", "类型", "分数", "等级", "完成度", "提交方式"].map((label) => (
                     <th key={label} className="border-b border-[rgba(32,73,82,0.16)] px-3.5 py-4 font-extrabold">
                       {label}
                     </th>
@@ -137,7 +137,7 @@ export default function AdminPage() {
               <tbody>
                 {results.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-3.5 py-4 text-[#101820]">
+                    <td colSpan={9} className="px-3.5 py-4 text-[#101820]">
                       暂无记录。
                     </td>
                   </tr>
@@ -147,6 +147,7 @@ export default function AdminPage() {
                       <td className="border-b border-[rgba(32,73,82,0.16)] px-3.5 py-4">{formatTime(item.submittedAt)}</td>
                       <td className="border-b border-[rgba(32,73,82,0.16)] px-3.5 py-4 font-semibold">{item.nickname}</td>
                       <td className="border-b border-[rgba(32,73,82,0.16)] px-3.5 py-4">{item.position}</td>
+                      <td className="max-w-[220px] border-b border-[rgba(32,73,82,0.16)] px-3.5 py-4">{item.remark || "—"}</td>
                       <td className="border-b border-[rgba(32,73,82,0.16)] px-3.5 py-4">{typeLabel[item.examId]}</td>
                       <td className="border-b border-[rgba(32,73,82,0.16)] px-3.5 py-4">
                         {typeof item.correct === "number" ? `${item.correct}/${item.total ?? 15}` : "—"}
