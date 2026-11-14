@@ -11,9 +11,5 @@ powershell -NoProfile -Command ^
   "foreach ($p in @($lnk,$dir,$cache)) { if (Test-Path -LiteralPath $p) { try { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Stop } catch { $failed=$true } } };" ^
   "if ($failed) { Write-Host ([string]::new([char[]](0x5378,0x8F7D,0x5931,0x8D25,0x3002))); exit 1 };" ^
   "Write-Host ([string]::new([char[]](0x5DF2,0x5378,0x8F7D,0x3002)))"
-if errorlevel 1 (
-  pause
-  exit /b 1
-)
-pause
+if errorlevel 1 exit /b 1
 endlocal
