@@ -16,6 +16,7 @@ func main() {
 			Title:  "候选考试",
 			Width:  1200,
 			Height: 860,
+			IconId: 1,
 			Center: true,
 		},
 	})

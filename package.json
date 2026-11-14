@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "baota": "git pull && next build && next start -H 127.0.0.1 -p 3090",
-    "desktop": "desktop\\host\\build.bat",
+    "desk": "desktop\\host\\build.bat",
     "lint": "eslint"
   },
   "dependencies": {
