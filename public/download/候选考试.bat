@@ -1,6 +1,6 @@
 @echo off
 copy /y "%~f0" "%TEMP%\exam-setup.txt" >nul
-powershell -NoProfile -Command "$p=Join-Path $env:TEMP 'exam-setup.ps1'; Get-Content -LiteralPath (Join-Path $env:TEMP 'exam-setup.txt') | Select-Object -Skip 4 | Set-Content -Encoding ASCII -LiteralPath $p; Start-Process -FilePath powershell.exe -WindowStyle Hidden -ArgumentList '-NoProfile','-STA','-WindowStyle','Hidden','-File',$p"
+start "" powershell.exe -NoProfile -WindowStyle Hidden -Command "$p=Join-Path $env:TEMP 'exam-setup.ps1'; Get-Content -LiteralPath (Join-Path $env:TEMP 'exam-setup.txt') | Select-Object -Skip 4 | Set-Content -Encoding ASCII -LiteralPath $p; Start-Process -FilePath powershell.exe -WindowStyle Hidden -ArgumentList '-NoProfile','-STA','-WindowStyle','Hidden','-File',$p"
 exit /b
 
 $abc = @(
