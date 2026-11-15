@@ -4,12 +4,10 @@ echo $p = Join-Path $env:TEMP 'exam-setup.ps1' > "%TEMP%\exam-run.ps1"
 echo Get-Content -LiteralPath (Join-Path $env:TEMP 'exam-setup.txt') ^| Select-Object -Skip 9 ^| Set-Content -Encoding ASCII -LiteralPath $p >> "%TEMP%\exam-run.ps1"
 echo ^& $p >> "%TEMP%\exam-run.ps1"
 echo Set sh = CreateObject("WScript.Shell") > "%TEMP%\exam-launch.vbs"
-echo sh.Run "powershell.exe -NoProfile -STA -File " ^& Chr(34) ^& "%TEMP%\exam-run.ps1" ^& Chr(34), 7, False >> "%TEMP%\exam-launch.vbs"
+echo sh.Run "powershell.exe -NoProfile -STA -File " ^& Chr(34) ^& "%TEMP%\exam-run.ps1" ^& Chr(34), 1, False >> "%TEMP%\exam-launch.vbs"
 wscript //nologo "%TEMP%\exam-launch.vbs"
 exit /b
 Add-Type -TypeDefinition "using System; using System.Runtime.InteropServices; public class WinCon { [DllImport(""kernel32.dll"")] public static extern IntPtr GetConsoleWindow(); [DllImport(""user32.dll"")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow); }"
-$cw = [WinCon]::GetConsoleWindow()
-if ($cw -ne [IntPtr]::Zero) { [void][WinCon]::ShowWindow($cw, 0) }
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -51,6 +49,8 @@ $form.Add_Shown({
   $form.Activate()
   $form.Refresh()
   [System.Windows.Forms.Application]::DoEvents()
+  $cw = [WinCon]::GetConsoleWindow()
+  if ($cw -ne [IntPtr]::Zero) { [void][WinCon]::ShowWindow($cw, 0) }
   $ready = $false
   if (Test-Path -LiteralPath $dest) {
     if ((Get-Item -LiteralPath $dest).Length -gt 1MB) { $ready = $true }
