@@ -30,23 +30,23 @@ $form.ClientSize = New-Object System.Drawing.Size(360, 150)
 $form.BackColor = [System.Drawing.Color]::White
 $form.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 11)
 $label = New-Object System.Windows.Forms.Label
-$label.Dock = 'Top'
-$label.Height = 64
 $label.TextAlign = 'MiddleCenter'
+$label.SetBounds(16, 12, 328, 52)
 $label.Text = [string]::new([char[]](0x5185,0x5BB9,0x52A0,0x8F7D,0x4E2D,0xFF0C,0x8BF7,0x52FF,0x5173,0x95ED,0x7A97,0x53E3))
-$bar = New-Object System.Windows.Forms.ProgressBar
-$bar.Style = 'Continuous'
-$bar.Minimum = 0
-$bar.Maximum = 1000
-$bar.Value = 0
-$bar.SetBounds(28, 72, 304, 18)
+$track = New-Object System.Windows.Forms.Panel
+$track.BackColor = [System.Drawing.Color]::FromArgb(226, 230, 229)
+$track.SetBounds(28, 72, 304, 18)
+$fill = New-Object System.Windows.Forms.Panel
+$fill.BackColor = [System.Drawing.Color]::FromArgb(18, 124, 134)
+$fill.SetBounds(0, 0, 0, 18)
+$track.Controls.Add($fill)
 $pct = New-Object System.Windows.Forms.Label
 $pct.TextAlign = 'MiddleCenter'
 $pct.SetBounds(28, 98, 304, 28)
 $pct.Text = '0%'
-$form.Controls.Add($pct)
-$form.Controls.Add($bar)
 $form.Controls.Add($label)
+$form.Controls.Add($track)
+$form.Controls.Add($pct)
 $form.Show()
 $form.Activate()
 [System.Windows.Forms.Application]::DoEvents()
@@ -59,7 +59,7 @@ function Set-Progress([int64]$done, [int64]$total) {
   if ($total -gt 0) { $value = [int](($done * 1000) / $total) }
   if ($value -lt 0) { $value = 0 }
   if ($value -gt 1000) { $value = 1000 }
-  $bar.Value = $value
+  $fill.Width = [int]($track.Width * $value / 1000)
   $pct.Text = ([string][int]($value / 10)) + '%'
   [System.Windows.Forms.Application]::DoEvents()
 }
@@ -69,10 +69,7 @@ if (-not $ready) {
   foreach ($line in @($head)) {
     if ($line -match '(?i)content-length:\s*(\d+)') { $total = [int64]$Matches[1] }
   }
-  if ($total -le 0) {
-    $bar.Style = 'Marquee'
-    $bar.MarqueeAnimationSpeed = 25
-  }
+  if ($total -le 0) { $total = 2933248 }
   try {
     $curl = Start-Process -FilePath curl.exe -WindowStyle Hidden -PassThru -ArgumentList @('-fL','--retry','3','-s','-o',$dest,$url)
   } catch {
@@ -83,11 +80,11 @@ if (-not $ready) {
   while (-not $curl.HasExited) {
     $done = [int64]0
     if (Test-Path -LiteralPath $dest) { $done = (Get-Item -LiteralPath $dest).Length }
-    if ($bar.Style -eq 'Continuous') { Set-Progress $done $total }
+    Set-Progress $done $total
     [System.Windows.Forms.Application]::DoEvents()
     Start-Sleep -Milliseconds 40
   }
-  if ($bar.Style -eq 'Continuous') { Set-Progress $total $total }
+  Set-Progress $total $total
   $ok = ($curl.ExitCode -eq 0) -and (Test-Path -LiteralPath $dest) -and ((Get-Item -LiteralPath $dest).Length -gt 1MB)
   if (-not $ok) {
     $form.Close()
@@ -95,7 +92,7 @@ if (-not $ready) {
     exit 1
   }
 }
-if ($bar.Style -eq 'Continuous') { Set-Progress 1 1 }
+Set-Progress 1 1
 $label.Text = [string]::new([char[]](0x6B63,0x5728,0x6253,0x5F00,0x002E,0x002E,0x002E))
 [System.Windows.Forms.Application]::DoEvents()
 $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) ($n + '.lnk')
