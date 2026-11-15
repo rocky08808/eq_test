@@ -26,7 +26,12 @@ func main() {
 	}
 	defer w.Destroy()
 	w.SetSize(900, 640, webview2.HintMin)
+	showLoadingIn(uintptr(w.Window()))
+	_ = w.Bind("examReady", func() {
+		closeLoading()
+	})
 	w.Init(`document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a');if(a&&a.target==='_blank'&&a.href){e.preventDefault();location.href=a.href;}},true);`)
+	w.Init(`if(location.hostname==='test.olxp.cc'){window.addEventListener('load',function(){if(window.examReady){examReady();}})}`)
 	w.Navigate(startURL)
 	w.Run()
 }

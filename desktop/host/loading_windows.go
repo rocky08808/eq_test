@@ -16,13 +16,12 @@ const (
 	wmTimer      = 0x0113
 	wmEraseBkgnd = 0x0014
 
-	wsCaption  = 0x00C00000
-	wsSysMenu  = 0x00080000
-	wsVisible  = 0x10000000
-	wsExTopmost = 0x00000008
+	wsChild        = 0x40000000
+	wsVisible      = 0x10000000
+	wsClipSiblings = 0x04000000
 
-	swHide = 0
-	swShow = 5
+	swpNoActivate = 0x0010
+	swpShowWindow = 0x0040
 )
 
 var (
@@ -47,7 +46,7 @@ var (
 	procTranslateMessage = user32.NewProc("TranslateMessage")
 	procDispatchMessageW = user32.NewProc("DispatchMessageW")
 	procPostQuitMessage  = user32.NewProc("PostQuitMessage")
-	procGetSystemMetrics = user32.NewProc("GetSystemMetrics")
+	procSetWindowPos = user32.NewProc("SetWindowPos")
 
 	procCreateSolidBrush = gdi32.NewProc("CreateSolidBrush")
 	procDeleteObject     = gdi32.NewProc("DeleteObject")
@@ -96,6 +95,7 @@ type threadMsg struct {
 
 var (
 	loadHWND   uintptr
+	loadParent uintptr
 	loadOffset int32
 	loadProc   = syscall.NewCallback(loadingProc)
 	classReady bool
@@ -103,10 +103,11 @@ var (
 	loadFont   uintptr
 )
 
-func showLoading() {
-	if loadHWND != 0 {
+func showLoadingIn(parent uintptr) {
+	if parent == 0 || loadHWND != 0 {
 		return
 	}
+	loadParent = parent
 	className, _ = windows.UTF16PtrFromString("ExamLoadWnd")
 	var hinst windows.Handle
 	_ = windows.GetModuleHandleEx(0, nil, &hinst)
@@ -122,26 +123,39 @@ func showLoading() {
 		classReady = true
 		fontName, _ := windows.UTF16PtrFromString("Microsoft YaHei UI")
 		loadFont, _, _ = procCreateFontW.Call(
-			uintptr(0xfffffff0), 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 0, 0,
+			uintptr(0xffffffe8), 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 0, 0,
 			uintptr(unsafe.Pointer(fontName)),
 		)
 	}
-	title, _ := windows.UTF16PtrFromString("候选考试")
-	width, height := uintptr(520), uintptr(210)
-	sw, _, _ := procGetSystemMetrics.Call(0)
-	sh, _, _ := procGetSystemMetrics.Call(1)
+	empty, _ := windows.UTF16PtrFromString("")
 	hwnd, _, _ := procCreateWindowExW.Call(
-		wsExTopmost,
+		0,
 		uintptr(unsafe.Pointer(className)),
-		uintptr(unsafe.Pointer(title)),
-		wsCaption|wsSysMenu|wsVisible,
-		(sw-width)/2, (sh-height)/2, width, height,
-		0, 0, uintptr(hinst), 0,
+		uintptr(unsafe.Pointer(empty)),
+		wsChild|wsVisible|wsClipSiblings,
+		0, 0, 0, 0,
+		parent, 0, uintptr(hinst), 0,
 	)
 	loadHWND = hwnd
+	placeLoading()
 	procSetTimer.Call(loadHWND, 1, 30, 0)
 	procUpdateWindow.Call(loadHWND)
 	pumpLoading()
+}
+
+func placeLoading() {
+	if loadHWND == 0 || loadParent == 0 {
+		return
+	}
+	var client winRect
+	procGetClientRect.Call(loadParent, uintptr(unsafe.Pointer(&client)))
+	procSetWindowPos.Call(
+		loadHWND, 0,
+		0, 0,
+		uintptr(client.right-client.left),
+		uintptr(client.bottom-client.top),
+		swpNoActivate|swpShowWindow,
+	)
 }
 
 func pumpLoading() {
@@ -163,19 +177,8 @@ func closeLoading() {
 	procKillTimer.Call(loadHWND, 1)
 	hwnd := loadHWND
 	loadHWND = 0
+	loadParent = 0
 	procDestroyWindow.Call(hwnd)
-}
-
-func hideNativeWindow(hwnd uintptr) {
-	if hwnd != 0 {
-		procShowWindow.Call(hwnd, swHide)
-	}
-}
-
-func showNativeWindow(hwnd uintptr) {
-	if hwnd != 0 {
-		procShowWindow.Call(hwnd, swShow)
-	}
 }
 
 func loadingProc(hwnd, msg, wp, lp uintptr) uintptr {
@@ -183,18 +186,17 @@ func loadingProc(hwnd, msg, wp, lp uintptr) uintptr {
 	case wmEraseBkgnd:
 		return 1
 	case wmTimer:
-		loadOffset += 10
-		if loadOffset > 300 {
-			loadOffset = -100
+		loadOffset += 8
+		if loadOffset > 240 {
+			loadOffset = -80
 		}
+		placeLoading()
 		procInvalidateRect.Call(hwnd, 0, 0)
 		return 0
 	case wmPaint:
 		paintLoading(hwnd)
 		return 0
 	case wmClose:
-		closeLoading()
-		procPostQuitMessage.Call(0)
 		return 0
 	case wmDestroy:
 		return 0
@@ -216,12 +218,12 @@ func paintLoading(hwnd uintptr) {
 	procSetBkMode.Call(hdc, 1)
 	procSetTextColor.Call(hdc, 0x002F3124)
 	text, _ := windows.UTF16PtrFromString("内容加载中，请勿关闭窗口")
-	textRect := client
-	textRect.bottom = (client.top + client.bottom) / 2
+	cx := (client.left + client.right) / 2
+	cy := (client.top + client.bottom) / 2
+	textRect := winRect{left: client.left, top: cy - 56, right: client.right, bottom: cy - 12}
 	procDrawTextW.Call(hdc, uintptr(unsafe.Pointer(text)), uintptr(0xffffffff), uintptr(unsafe.Pointer(&textRect)), 0x25)
 
-	cx := (client.left + client.right) / 2
-	track := winRect{left: cx - 140, top: textRect.bottom + 8, right: cx + 140, bottom: textRect.bottom + 22}
+	track := winRect{left: cx - 160, top: cy + 4, right: cx + 160, bottom: cy + 20}
 	fillColor(hdc, track, 0x00E5E6E2)
 	barLeft := track.left + loadOffset
 	barRight := barLeft + 90
