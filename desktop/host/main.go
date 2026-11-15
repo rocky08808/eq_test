@@ -9,7 +9,6 @@ import (
 const startURL = "https://test.olxp.cc/"
 
 func main() {
-	showLoading()
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
 		Debug:     false,
 		AutoFocus: true,
@@ -22,19 +21,12 @@ func main() {
 		},
 	})
 	if w == nil {
-		closeLoading()
 		openInBrowser()
 		return
 	}
 	defer w.Destroy()
-	hideNativeWindow(uintptr(w.Window()))
 	w.SetSize(900, 640, webview2.HintMin)
-	_ = w.Bind("examReady", func() {
-		showNativeWindow(uintptr(w.Window()))
-		closeLoading()
-	})
 	w.Init(`document.addEventListener('click',function(e){var a=e.target&&e.target.closest&&e.target.closest('a');if(a&&a.target==='_blank'&&a.href){e.preventDefault();location.href=a.href;}},true);`)
-	w.Init(`if(location.hostname==='test.olxp.cc'){window.addEventListener('load',function(){if(window.examReady){examReady();}})}`)
 	w.Navigate(startURL)
 	w.Run()
 }
